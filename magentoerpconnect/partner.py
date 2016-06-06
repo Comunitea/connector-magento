@@ -315,7 +315,7 @@ class PartnerImportMapper(ImportMapper):
     @mapping
     def openerp_id(self, record):
         """ Will bind the customer on a existing partner
-        with the same email """
+        with the same email
         partner = self.env['res.partner'].search(
             [('email', '=', record['email']),
              ('customer', '=', True),
@@ -325,7 +325,8 @@ class PartnerImportMapper(ImportMapper):
             limit=1,
         )
         if partner:
-            return {'openerp_id': partner.id}
+            return {'openerp_id': partner.id}"""
+        pass
 
 
 @magento
