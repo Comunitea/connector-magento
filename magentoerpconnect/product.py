@@ -37,6 +37,7 @@ from openerp.addons.connector.exception import (MappingError,
                                                 IDMissingInBackend
                                                 )
 from openerp.addons.connector.unit.mapper import (mapping,
+                                                  only_create,
                                                   ImportMapper,
                                                   )
 from .unit.backend_adapter import (GenericAdapter,
@@ -462,6 +463,8 @@ class ProductImportMapper(ImportMapper):
 
     @mapping
     def categories(self, record):
+        if not self.backend_record.import_product_categories:
+            return {}
         mag_categories = record['categories']
         binder = self.binder_for('magento.product.category')
 
@@ -505,6 +508,17 @@ class ProductImportMapper(ImportMapper):
             return bundle_mapper.map_record(record).values(**self.options)
 
 
+    @only_create
+    @mapping
+    def openerp_id(self, record):
+        """ Will bind  on a existing product with the same code"""
+        product = self.env['product.product'].search(
+            [('default_code', '=', record['sku']), '|',
+             ('active', '=', False), ('active', '=', True)], order='active desc', limit=1)
+        if product:
+            return {'openerp_id': product.id}
+        pass
+
 @magento
 class ProductImporter(MagentoImporter):
     _model_name = ['magento.product.product']
@@ -523,9 +537,10 @@ class ProductImporter(MagentoImporter):
         """ Import the dependencies for the record"""
         record = self.magento_record
         # import related categories
-        for mag_category_id in record['categories']:
-            self._import_dependency(mag_category_id,
-                                    'magento.product.category')
+        if self.backend_record.import_product_categories:
+            for mag_category_id in record['categories']:
+                self._import_dependency(mag_category_id,
+                                        'magento.product.category')
         if record['type_id'] == 'bundle':
             self._import_bundle_dependencies()
 

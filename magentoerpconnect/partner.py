@@ -244,7 +244,6 @@ class PartnerImportMapper(ImportMapper):
         (normalize_datetime('updated_at'), 'updated_at'),
         ('email', 'emailid'),
         ('taxvat', 'taxvat'),
-        ('group_id', 'group_id'),
     ]
 
     @only_create
@@ -265,6 +264,8 @@ class PartnerImportMapper(ImportMapper):
     @mapping
     def customer_group_id(self, record):
         # import customer groups
+        if not self.backend_record.import_partner_categories:
+            return {}
         binder = self.binder_for(model='magento.res.partner.category')
         category_id = binder.to_openerp(record['group_id'], unwrap=True)
 
@@ -315,17 +316,18 @@ class PartnerImportMapper(ImportMapper):
     @mapping
     def openerp_id(self, record):
         """ Will bind the customer on a existing partner
-        with the same email
+        with the same email"""
         partner = self.env['res.partner'].search(
             [('email', '=', record['email']),
              ('customer', '=', True),
              '|',
-             ('is_company', '=', True),
-             ('parent_id', '=', False)],
+             ('is_company', '=', True), '&',
+             ('parent_id', '=', False),
+             '|', ('active', '=', False), ('active', '=', True)],
             limit=1,
         )
         if partner:
-            return {'openerp_id': partner.id}"""
+            return {'openerp_id': partner.id}
         pass
 
 
@@ -338,6 +340,8 @@ class PartnerImporter(MagentoImporter):
     def _import_dependencies(self):
         """ Import the dependencies for the record"""
         record = self.magento_record
+        if not self.backend_record.import_partner_categories:
+            return
         self._import_dependency(record['group_id'],
                                 'magento.res.partner.category')
 

@@ -72,6 +72,8 @@ class MagentoBackend(models.Model):
         required=True,
         help="Url to magento application",
     )
+    import_partner_categories = fields.Boolean('Import partner categories')
+    import_product_categories = fields.Boolean('Import product categories')
     admin_location = fields.Char(string='Admin Location')
     use_custom_api_path = fields.Boolean(
         string='Custom Api Path',
@@ -234,6 +236,8 @@ class MagentoBackend(models.Model):
         session = ConnectorSession(self.env.cr, self.env.uid,
                                    context=self.env.context)
         for backend in self:
+            if not backend.import_partner_categories:
+                continue
             backend.check_magento_structure()
             import_batch.delay(session, 'magento.res.partner.category',
                                backend.id)
@@ -270,7 +274,9 @@ class MagentoBackend(models.Model):
         self.write({from_date_field: next_time})
 
     @api.multi
-    def import_product_categories(self):
+    def import_product_categories_btn(self):
+        if not self.import_product_categories:
+            return True
         self._import_from_date('magento.product.category',
                                'import_categories_from_date')
         return True
