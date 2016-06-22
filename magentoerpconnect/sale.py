@@ -541,7 +541,6 @@ class SaleOrderImportMapper(ImportMapper):
 
     @mapping
     def shipping_method(self, record):
-        import ipdb; ipdb.set_trace()
         ifield = record.get('shipping_method')
         if not ifield:
             return
