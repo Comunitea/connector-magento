@@ -541,26 +541,19 @@ class SaleOrderImportMapper(ImportMapper):
 
     @mapping
     def shipping_method(self, record):
+        import ipdb; ipdb.set_trace()
         ifield = record.get('shipping_method')
         if not ifield:
             return
 
         carrier = self.env['delivery.carrier'].search(
-            [('magento_code', '=', ifield)],
+            [('magento_code', 'ilike', ifield)],
             limit=1,
         )
         if carrier:
             result = {'carrier_id': carrier.id}
         else:
-            fake_partner = self.env['res.partner'].search([], limit=1)
-            product = self.env.ref(
-                'connector_ecommerce.product_product_shipping')
-            carrier = self.env['delivery.carrier'].create({
-                'partner_id': fake_partner.id,
-                'product_id': product.id,
-                'name': ifield,
-                'magento_code': ifield})
-            result = {'carrier_id': carrier.id}
+            raise exceptions.Warning(_('Carrier error'), _('Carrier with code %s not found') % ifield)
         return result
 
     @mapping
