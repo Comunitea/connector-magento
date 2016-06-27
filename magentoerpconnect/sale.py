@@ -959,6 +959,10 @@ class PricelistSaleOrderImportMapper(ImportMapper):
     """
     _model_name = 'magento.sale.order'
 
+    @mapping
+    def coupon_code(self, record):
+        return {'note': record['coupon_code']}
+
 
 @magento
 class SaleOrderCommentImportMapper(ImportMapper):
