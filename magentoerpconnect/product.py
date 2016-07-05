@@ -426,7 +426,6 @@ class ProductImportMapper(ImportMapper):
     # TODO :     categ, special_price => minimal_price
     direct = [('name', 'name'),
               ('weight', 'weight'),
-              ('cost', 'standard_price'),
               ('sku', 'default_code'),
               ('type_id', 'product_type'),
               (normalize_datetime('created_at'), 'created_at'),
@@ -446,10 +445,10 @@ class ProductImportMapper(ImportMapper):
         mapper = self.unit_for(IsActiveProductImportMapper)
         return mapper.map_record(record).values(**self.options)
 
-    @mapping
+    '''@mapping
     def price(self, record):
         mapper = self.unit_for(PriceProductImportMapper)
-        return mapper.map_record(record).values(**self.options)
+        return mapper.map_record(record).values(**self.options)'''
 
     @mapping
     def type(self, record):
