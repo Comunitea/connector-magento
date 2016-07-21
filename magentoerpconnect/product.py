@@ -431,7 +431,7 @@ class ProductImportMapper(ImportMapper):
               (normalize_datetime('created_at'), 'created_at'),
               (normalize_datetime('updated_at'), 'updated_at'),
               ]
-    
+
     @mapping
     def description(self, record):
         return {'description': html2text.html2text(record['description'])}
@@ -518,6 +518,8 @@ class ProductImportMapper(ImportMapper):
     @mapping
     def openerp_id(self, record):
         """ Will bind  on a existing product with the same code"""
+        if not record['sku']:
+            return {}
         product = self.env['product.product'].search(
             [('default_code', '=', record['sku']), '|',
              ('active', '=', False), ('active', '=', True)], order='active desc', limit=1)
