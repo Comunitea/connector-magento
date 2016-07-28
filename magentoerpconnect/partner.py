@@ -317,17 +317,18 @@ class PartnerImportMapper(ImportMapper):
     def openerp_id(self, record):
         """ Will bind the customer on a existing partner
         with the same email"""
-        partner = self.env['res.partner'].search(
-            [('email', '=', record['email']),
-             ('customer', '=', True),
-             '|',
-             ('is_company', '=', True), '&',
-             ('parent_id', '=', False),
-             '|', ('active', '=', False), ('active', '=', True)],
-            limit=1,
-        )
-        if partner:
-            return {'openerp_id': partner.id}
+        if record['email']:
+            partner = self.env['res.partner'].search(
+                [('email', '=', record['email']),
+                 ('customer', '=', True),
+                 '|',
+                 ('is_company', '=', True), '&',
+                 ('parent_id', '=', False),
+                 '|', ('active', '=', False), ('active', '=', True)],
+                limit=1,
+            )
+            if partner:
+                return {'openerp_id': partner.id}
         pass
 
 
