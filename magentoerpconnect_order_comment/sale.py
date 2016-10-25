@@ -49,7 +49,7 @@ class MailMessage(models.Model):
         string="Magento Bindings")
 
 
-@on_record_create(model_names='mail.message')
+'''@on_record_create(model_names='mail.message')
 def create_mail_message(session, model_name, record_id, vals):
     if session.env.context.get('connector_no_export'):
         return
@@ -63,7 +63,7 @@ def create_mail_message(session, model_name, record_id, vals):
                 'is_visible_on_front': True,
                 'is_customer_notified': store.send_sale_comment_mail,
                 'magento_sale_order_id': mag_sale.id,
-            })
+            })'''
 
 
 class MagentoSaleOrder(models.Model):
@@ -228,7 +228,7 @@ class MagentoSaleCommentBinder(MagentoModelBinder):
     ]
 
 
-@magento
+'''@magento
 class MagentoSaleCommentExporter(MagentoExporter):
     """ Export sale order comments seller to Magento """
     _model_name = ['magento.sale.comment']
@@ -280,4 +280,4 @@ class SaleCommentExportMapper(ExportMapper):
 @on_record_create(model_names=['magento.sale.comment'])
 @on_record_write(model_names=['magento.sale.comment'])
 def delay_export(session, model_name, record_id, vals):
-    magentoerpconnect.delay_export(session, model_name, record_id, vals)
+    magentoerpconnect.delay_export(session, model_name, record_id, vals)'''
