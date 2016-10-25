@@ -23,6 +23,7 @@ import logging
 import xmlrpclib
 from collections import namedtuple
 from openerp import models, fields, api
+from openerp.addons.connector.connector import ConnectorEnvironment
 from openerp.addons.connector.queue.job import job
 from openerp.addons.connector.connector import ConnectorUnit
 from openerp.addons.connector.exception import MappingError
@@ -41,6 +42,7 @@ from .unit.import_synchronizer import (DelayedBatchImporter,
 from .unit.mapper import normalize_datetime
 from .backend import magento
 from .connector import get_environment
+from .partner_category import PartnerCategoryAdapter
 
 _logger = logging.getLogger(__name__)
 
@@ -331,6 +333,23 @@ class PartnerImportMapper(ImportMapper):
                 return {'openerp_id': partner.id}
         pass
 
+    @mapping
+    def account_position(self, record):
+        if not record.get('store_id', False):
+            return
+        conn_env = ConnectorEnvironment(
+            self.backend_record,
+            (self.env.cr, self.env.user.id, self.env.context),
+            'magento.res.partner.category')
+        cat_adapter = PartnerCategoryAdapter(conn_env)
+        categ = cat_adapter.read(record['store_id'])
+        if categ and categ.get('tax_class_id', False):
+            fiscal_pos = self.env['account.fiscal.position'].search(
+                [('magento_id', '=', int(categ.get('tax_class_id')))])
+            if fiscal_pos:
+                return {'property_account_position': fiscal_pos.id}
+            else:
+                return {'property_account_position': False}
 
 @magento
 class PartnerImporter(MagentoImporter):

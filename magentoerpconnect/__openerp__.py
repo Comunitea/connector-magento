@@ -49,6 +49,7 @@
           'product_view.xml',
           'partner_view.xml',
           'sale_view.xml',
+          'account.xml',
           'invoice_view.xml',
           'magentoerpconnect_menu.xml',
           'delivery_view.xml',
