@@ -876,6 +876,10 @@ class SaleOrderImporter(MagentoImporter):
         addr_mapper = self.unit_for(ImportMapper, model='magento.address')
 
         def create_address(address_record):
+            address_binder = self.binder_for('magento.address')
+            address_id = address_binder.to_openerp(address_record['customer_address_id'])
+            if address_id:
+                return address_id
             map_record = addr_mapper.map_record(address_record)
             map_record.update(addresses_defaults)
             address_bind = self.env['magento.address'].create(
@@ -888,7 +892,12 @@ class SaleOrderImporter(MagentoImporter):
         shipping_id = None
         if record['shipping_address']:
             shipping_id = create_address(record['shipping_address'])
-
+        if not partner.customer_payment_mode:
+            record_method = record['payment']['method']
+            payment_method = self.env['payment.method'].search(
+                [['name', '=', record_method]],
+                limit=1)
+            partner.customer_payment_mode = payment_method.id
         self.partner_id = partner.id
         self.partner_invoice_id = billing_id
         self.partner_shipping_id = shipping_id or billing_id
