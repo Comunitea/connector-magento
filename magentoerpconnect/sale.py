@@ -877,7 +877,8 @@ class SaleOrderImporter(MagentoImporter):
 
         def create_address(address_record):
             address_binder = self.binder_for('magento.address')
-            address_id = address_binder.to_openerp(address_record['customer_address_id'])
+            address_id = address_binder.\
+                to_openerp(address_record['customer_address_id'], unwrap=True)
             if address_id:
                 return address_id
             map_record = addr_mapper.map_record(address_record)
