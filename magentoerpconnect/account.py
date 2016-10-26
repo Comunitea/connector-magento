@@ -10,3 +10,10 @@ class AccountFiscalPoition(models.Model):
     _inherit = 'account.fiscal.position'
 
     magento_id = fields.Integer()
+
+
+class AccountPaymentTerm(models.Model):
+
+    _inherit = 'account.payment.term'
+
+    magento_id = fields.Integer()

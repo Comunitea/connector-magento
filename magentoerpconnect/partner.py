@@ -348,8 +348,15 @@ class PartnerImportMapper(ImportMapper):
                 [('magento_id', '=', int(categ.get('tax_class_id')))])
             if fiscal_pos:
                 return {'property_account_position': fiscal_pos.id}
-            else:
-                return {'property_account_position': False}
+        return {'property_account_position': False}
+
+    @mapping
+    def payment_term(self, record):
+        if record.get('venciment', False):
+            payment_term = self.env['account.payment.term'].search([('magento_id', '=', record['venciment'])])
+            if payment_term:
+                return {'property_payment_term': payment_term.id}
+        return {'property_payment_term': False}
 
 @magento
 class PartnerImporter(MagentoImporter):
