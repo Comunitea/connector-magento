@@ -335,14 +335,14 @@ class PartnerImportMapper(ImportMapper):
 
     @mapping
     def account_position(self, record):
-        if not record.get('store_id', False):
+        if not record.get('group_id', False):
             return
         conn_env = ConnectorEnvironment(
             self.backend_record,
             (self.env.cr, self.env.user.id, self.env.context),
             'magento.res.partner.category')
         cat_adapter = PartnerCategoryAdapter(conn_env)
-        categ = cat_adapter.read(record['store_id'])
+        categ = cat_adapter.read(record['group_id'])
         if categ and categ.get('tax_class_id', False):
             fiscal_pos = self.env['account.fiscal.position'].search(
                 [('magento_id', '=', int(categ.get('tax_class_id')))])
