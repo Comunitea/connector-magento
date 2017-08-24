@@ -4,10 +4,9 @@
 
 from openerp.addons.connector.unit.mapper import mapping
 from openerp.addons.magentoerpconnect.product import ProductImportMapper
-from openerp.addons.magentoerpconnect.backend import magento1700
+from openerp.addons.magentoerpconnect.backend import magento
 
-
-@magento1700
+@magento(replacing=ProductImportMapper)
 class TaxProductImportMapper(ProductImportMapper):
     _model_name = 'magento.product.product'
 
