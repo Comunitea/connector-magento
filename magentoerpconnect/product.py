@@ -598,6 +598,13 @@ class ProductImporter(MagentoImporter):
         checkpoint.run(openerp_binding.id)
         return openerp_binding
 
+
+    def _update_data(self, map_record, **kwargs):
+        res = super(ProductImporter, self)._update_data(map_record, **kwargs)
+        update_keys = ['name', 'website_ids', 'magento_id', 'backend_id',
+                       'created_at', 'updated_at', 'product_type']
+        return { key:res[key] for key in update_keys}
+
     def _after_import(self, binding):
         """ Hook called at the end of the import """
         translation_importer = self.unit_for(TranslationImporter)
