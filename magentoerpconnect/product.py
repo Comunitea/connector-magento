@@ -406,7 +406,7 @@ class CatalogImageImporter2000(CatalogImageImporter):
             model = 'product'
         else:
             raise NotImplementedError  # Categories?
-        image_data['url'] = '%s/media/catalog/%s/%s' % (
+        image_data['url'] = '%s/pub/media/catalog/%s/%s' % (
             self.backend_record.location, model, image_data['file'])
         return super(CatalogImageImporter2000, self)._get_binary_image(
             image_data)
