@@ -52,6 +52,7 @@ from .unit.import_synchronizer import (DelayedBatchImporter,
 from .connector import get_environment
 from .backend import magento, magento2000
 from .related_action import unwrap_binding
+import html2text
 
 _logger = logging.getLogger(__name__)
 
@@ -472,15 +473,22 @@ class ProductImportMapper(ImportMapper):
     _model_name = 'magento.product.product'
     # TODO :     categ, special_price => minimal_price
     direct = [('name', 'name'),
-              ('description', 'description'),
               ('weight', 'weight'),
               ('cost', 'standard_price'),
-              ('short_description', 'description_sale'),
               ('sku', 'default_code'),
               ('type_id', 'product_type'),
               (normalize_datetime('created_at'), 'created_at'),
               (normalize_datetime('updated_at'), 'updated_at'),
               ]
+
+    @mapping
+    def description(self, record):
+        return {'description': html2text.html2text(record['description'])}
+
+    @mapping
+    def description_sale(self, record):
+        return {'description_sale': html2text.html2text(
+            record['short_description'])}
 
     @mapping
     def is_active(self, record):
