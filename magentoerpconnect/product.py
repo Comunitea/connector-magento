@@ -483,12 +483,12 @@ class ProductImportMapper(ImportMapper):
 
     @mapping
     def description(self, record):
-        return {'description': html2text.html2text(record['description'])}
+        return {'description': html2text.html2text(record.get('description', '')}
 
     @mapping
     def description_sale(self, record):
         return {'description_sale': html2text.html2text(
-            record['short_description'])}
+            record.get('short_description', ''))}
 
     @mapping
     def is_active(self, record):
