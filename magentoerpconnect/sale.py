@@ -551,6 +551,8 @@ class SaleOrderImportMapper(ImportMapper):
         )
         if carrier:
             result = {'carrier_id': carrier.id}
+            if carrier.service:
+                result['carrier_service_id'] = carrier.service.id
         else:
             raise exceptions.Warning(_('Carrier error'), _('Carrier with code %s not found') % ifield)
         return result
