@@ -193,6 +193,13 @@ class MagentoImporter(Importer):
         :param magento_id: identifier of the record on Magento
         """
         self.magento_id = magento_id
+        lock_name = 'import({}, {}, {}, {})'.format(
+            self.backend_record._name,
+            self.backend_record.id,
+            self.model._name,
+            magento_id,
+        )
+
         try:
             self.magento_record = self._get_magento_data()
         except IDMissingInBackend:
@@ -206,6 +213,11 @@ class MagentoImporter(Importer):
 
         if not force and self._is_uptodate(binding):
             return _('Already up-to-date.')
+
+        # Keep a lock on this import until the transaction is committed
+        # The lock is kept since we have detected that the informations
+        # will be updated into Odoo
+        self.advisory_lock_or_retry(lock_name)
         self._before_import()
 
         # import the missing linked resources

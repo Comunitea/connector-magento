@@ -488,11 +488,14 @@ class SaleOrderImportMapper(ImportMapper):
         record = map_record.source
         if 'gift_cert_amount' not in record:
             return values
+        # if gift_cert_amount is zero
+        if not record.get('gift_cert_amount'):
+            return values
         amount = float(record['gift_cert_amount'])
         line_builder = self.unit_for(MagentoGiftOrderLineBuilder)
         line_builder.price_unit = amount
         if 'gift_cert_code' in record:
-            line_builder.code = record['gift_cert_code']
+            line_builder.gift_code = record['gift_cert_code']
         line = (0, 0, line_builder.get_line())
         values['order_line'].append(line)
         return values
@@ -569,6 +572,18 @@ class SaleOrderImportMapper(ImportMapper):
         if team:
             return {'section_id': team.id}
 
+    @mapping
+    def project_id(self, record):
+        project_id = self.options.storeview.account_analytic_id
+        if project_id:
+            return {'project_id': project_id.id}
+
+    @mapping
+    def fiscal_position(self, record):
+        fiscal_position = self.options.storeview.fiscal_position_id
+        if fiscal_position:
+            return {'fiscal_position': fiscal_position.id}
+
     # partner_id, partner_invoice_id, partner_shipping_id
     # are done in the importer
 
@@ -587,6 +602,11 @@ class SaleOrderImportMapper(ImportMapper):
         comment_mapper = self.unit_for(SaleOrderCommentImportMapper)
         map_record = comment_mapper.map_record(record)
         return map_record.values(**self.options)
+
+    @mapping
+    def pricelist_id(self, record):
+        pricelist_mapper = self.unit_for(PricelistSaleOrderImportMapper)
+        return pricelist_mapper.map_record(record).values(**self.options)
 
 
 @magento
@@ -855,13 +875,10 @@ class SaleOrderImporter(MagentoImporter):
         # the partner form or the searches. Too many adresses would
         # be displayed.
         # They are never synchronized.
-
-        # For the orders which are from guests, we let the addresses
-        # as active because they don't have an address book.
         addresses_defaults = {'parent_id': partner.id,
                               'magento_partner_id': partner_binding.id,
                               'email': record.get('customer_email', False),
-                              'active': is_guest_order,
+                              'active': False,
                               'is_magento_order_address': True}
 
         addr_mapper = self.unit_for(ImportMapper, model='magento.address')
@@ -932,6 +949,15 @@ class SaleOrderImporter(MagentoImporter):
 
 
 SaleOrderImport = SaleOrderImporter  # deprecated
+
+
+@magento
+class PricelistSaleOrderImportMapper(ImportMapper):
+    """ Mapper for importing the sales order pricelist
+
+    Does nothing by default. Replaced in magentoerpconnect_pricing.
+    """
+    _model_name = 'magento.sale.order'
 
 
 @magento

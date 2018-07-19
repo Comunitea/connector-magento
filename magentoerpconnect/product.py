@@ -37,6 +37,7 @@ from openerp.addons.connector.exception import (MappingError,
                                                 IDMissingInBackend
                                                 )
 from openerp.addons.connector.unit.mapper import (mapping,
+                                                  only_create,
                                                   ImportMapper,
                                                   )
 from .unit.backend_adapter import (GenericAdapter,
@@ -71,11 +72,11 @@ class MagentoProductProduct(models.Model):
         return [
             ('simple', 'Simple Product'),
             ('configurable', 'Configurable Product'),
+            ('virtual', 'Virtual Product'),
+            ('downloadable', 'Downloadable Product'),
             # XXX activate when supported
             # ('grouped', 'Grouped Product'),
-            # ('virtual', 'Virtual Product'),
             # ('bundle', 'Bundle Product'),
-            # ('downloadable', 'Downloadable Product'),
         ]
 
     openerp_id = fields.Many2one(comodel_name='product.product',
@@ -332,7 +333,7 @@ class CatalogImageImporter(Importer):
             request = urllib2.Request(url)
             if self.backend_record.auth_basic_username \
                     and self.backend_record.auth_basic_password:
-                base64string = base64.encodestring(
+                base64string = base64.b64encode(
                     '%s:%s' % (self.backend_record.auth_basic_username,
                                self.backend_record.auth_basic_password))
                 request.add_header("Authorization", "Basic %s" % base64string)
@@ -349,18 +350,23 @@ class CatalogImageImporter(Importer):
         else:
             return binary.read()
 
+    def _write_image_data(self, binding_id, binary, image_data):
+        model = self.model.with_context(connector_no_export=True)
+        binding = model.browse(binding_id)
+        binding.write({'image': base64.b64encode(binary)})
+
     def run(self, magento_id, binding_id):
         self.magento_id = magento_id
         images = self._get_images()
         images = self._sort_images(images)
         binary = None
+        image_data = None
         while not binary and images:
-            binary = self._get_binary_image(images.pop())
+            image_data = images.pop()
+            binary = self._get_binary_image(image_data)
         if not binary:
             return
-        model = self.model.with_context(connector_no_export=True)
-        binding = model.browse(binding_id)
-        binding.write({'image': base64.b64encode(binary)})
+        self._write_image_data(binding_id, binary, image_data)
 
 
 @magento
@@ -440,15 +446,15 @@ class ProductImportMapper(ImportMapper):
 
     @mapping
     def price(self, record):
-        """ The price is imported at the creation of
-        the product, then it is only modified and exported
-        from OpenERP """
-        return {'list_price': record.get('price', 0.0)}
+        mapper = self.unit_for(PriceProductImportMapper)
+        return mapper.map_record(record).values(**self.options)
 
     @mapping
     def type(self, record):
         if record['type_id'] == 'simple':
             return {'type': 'product'}
+        elif record['type_id'] in ('virtual', 'downloadable'):
+            return {'type': 'service'}
         return
 
     @mapping
@@ -503,6 +509,15 @@ class ProductImportMapper(ImportMapper):
         if record['type_id'] == 'bundle':
             bundle_mapper = self.unit_for(BundleProductImportMapper)
             return bundle_mapper.map_record(record).values(**self.options)
+
+    @only_create
+    @mapping
+    def openerp_id(self, record):
+        """ Will bind the product to an existing one with the same code """
+        product = self.env['product.product'].search(
+            [('default_code', '=', record['sku'])], limit=1)
+        if product:
+            return {'openerp_id': product.id}
 
 
 @magento
@@ -589,6 +604,15 @@ class ProductImporter(MagentoImporter):
 
 
 ProductImport = ProductImporter  # deprecated
+
+
+@magento
+class PriceProductImportMapper(ImportMapper):
+    _model_name = 'magento.product.product'
+
+    @mapping
+    def price(self, record):
+        return {'list_price': record.get('price', 0.0)}
 
 
 @magento
