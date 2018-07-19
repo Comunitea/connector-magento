@@ -583,7 +583,6 @@ class ProductImportMapper2000(ProductImportMapper):
     def magento_id(self, record):
         return {'magento_id': record['sku']}
 
-
 @magento
 class ProductImporter(MagentoImporter):
     _model_name = ['magento.product.product']
