@@ -505,8 +505,13 @@ class SaleOrderImportMapper(ImportMapper):
 
     def _add_cash_on_delivery_line(self, map_record, values):
         record = map_record.source
-        amount_excl = float(record.get('cod_fee') or 0.0)
-        amount_incl = float(record.get('cod_tax_amount') or 0.0)
+        if self.backend_record.version == '2.0':
+            amount_incl = float(record.get('base_grand_total') - record.get('base_subtotal_incl_tax') - record.get('base_shipping_incl_tax'))
+            amount_incl = round(amount_incl, 3)
+            amount_excl = False
+        else:
+            amount_excl = float(record.get('cod_fee') or 0.0)
+            amount_incl = float(record.get('cod_tax_amount') or 0.0)
         if not (amount_excl or amount_incl):
             return values
         line_builder = self.unit_for(MagentoCashOnDeliveryLineBuilder)
@@ -587,15 +592,7 @@ class SaleOrderImportMapper(ImportMapper):
         if carrier:
             result = {'carrier_id': carrier.id}
         else:
-            fake_partner = self.env['res.partner'].search([], limit=1)
-            product = self.env.ref(
-                'connector_ecommerce.product_product_shipping')
-            carrier = self.env['delivery.carrier'].create({
-                'partner_id': fake_partner.id,
-                'product_id': product.id,
-                'name': ifield,
-                'magento_code': ifield})
-            result = {'carrier_id': carrier.id}
+            raise exceptions.Warning(_('Carrier error'), _('Carrier with code %s not found') % ifield)
         return result
 
     @mapping
@@ -726,8 +723,6 @@ class SaleOrderImporter(MagentoImporter):
             # Experimental support for configurable products with multiple
             # subitems
             return [item] + child_items[1:]
-        elif product_type == 'bundle':
-            return child_items
         return top_item
 
     def _import_customer_group(self, group_id):
