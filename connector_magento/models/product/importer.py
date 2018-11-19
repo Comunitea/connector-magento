@@ -14,7 +14,7 @@ import html2text
 from odoo import _
 import requests
 from odoo.addons.component.core import Component
-from odoo.addons.connector.components.mapper import mapping
+from odoo.addons.connector.components.mapper import mapping, only_create
 from odoo.addons.connector.exception import MappingError, InvalidDataError
 from ...components.mapper import normalize_datetime
 
@@ -265,6 +265,16 @@ class ProductImportMapper(Component):
     def backend_id(self, record):
         return {'backend_id': self.backend_record.id}
 
+    @only_create
+    @mapping
+    def company_id(self, record):
+        binder = self.binder_for(model='magento.storeview')
+        storeview = binder.to_internal(record['store_id'])
+        if storeview:
+            company = storeview.backend_id.company_id
+            if company:
+                return {'company_id': company.id}
+        return {'company_id': False}
 
 class ProductImporter(Component):
     _name = 'magento.product.product.importer'
