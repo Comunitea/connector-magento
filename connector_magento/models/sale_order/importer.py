@@ -710,7 +710,6 @@ class SaleOrderLineImportMapper(Component):
 
     direct = [('qty_ordered', 'product_uom_qty'),
               ('qty_ordered', 'product_qty'),
-              ('name', 'name'),
               ('item_id', 'external_id'),
               ]
 
