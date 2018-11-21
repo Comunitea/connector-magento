@@ -268,13 +268,7 @@ class ProductImportMapper(Component):
     @only_create
     @mapping
     def company_id(self, record):
-        binder = self.binder_for(model='magento.storeview')
-        storeview = binder.to_internal(record['store_id'])
-        if storeview:
-            company = storeview.backend_id.company_id
-            if company:
-                return {'company_id': company.id}
-        return {'company_id': False}
+        return {'company_id': self.backend_record.company_id.id}
 
 class ProductImporter(Component):
     _name = 'magento.product.product.importer'
