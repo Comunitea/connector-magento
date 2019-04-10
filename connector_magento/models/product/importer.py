@@ -238,6 +238,7 @@ class ProductImportMapper(Component):
 
         category_ids = []
         main_categ_id = None
+        longest_categ_id = None
 
         for mag_category_id in mag_categories:
             cat = binder.to_internal(mag_category_id, unwrap=True)
@@ -245,11 +246,14 @@ class ProductImportMapper(Component):
                 raise MappingError("The product category with "
                                    "magento id %s is not imported." %
                                    mag_category_id)
-
+            if not longest_categ_id:
+                longest_categ_id = cat
+            elif len(cat.complete_name) > len(longest_categ_id.complete_name):
+                longest_categ_id = cat
             category_ids.append(cat.id)
 
-        if category_ids:
-            main_categ_id = category_ids.pop(0)
+        if longest_categ_id:
+            main_categ_id = longest_categ_id.id
 
         if main_categ_id is None:
             default_categ = self.backend_record.default_category_id

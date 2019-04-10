@@ -49,7 +49,7 @@ class PartnerImportMapper(Component):
         (normalize_datetime('created_at'), 'created_at'),
         (normalize_datetime('updated_at'), 'updated_at'),
         ('email', 'emailid'),
-        ('taxvat', 'taxvat'),
+        ('taxvat', 'vat'),
         ('group_id', 'group_id'),
     ]
 
@@ -432,8 +432,8 @@ class AddressImportMapper(Component):
         fields += [
             ('created_at', 'created_at'),
             ('updated_at', 'updated_at'),
-            ('is_default_billing', 'is_default_billing'),
-            ('is_default_shipping', 'is_default_shipping'),
+            ('default_billing', 'default_billing'),
+            ('default_shipping', 'default_shipping'),
             ('company', 'company'),
         ]
         return fields
@@ -447,9 +447,9 @@ class AddressImportMapper(Component):
 
     @mapping
     def type(self, record):
-        if record.get('is_default_billing'):
+        if record.get('default_billing'):
             address_type = 'invoice'
-        elif record.get('is_default_shipping'):
+        elif record.get('default_shipping'):
             address_type = 'delivery'
         else:
             address_type = 'other'

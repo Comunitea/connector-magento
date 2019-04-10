@@ -73,8 +73,8 @@
                     <field name="external_id"/>
                     <field name="created_at"/>
                     <field name="updated_at"/>
-                    <field name="is_default_billing"/>
-                    <field name="is_default_shipping"/>
+                    <field name="default_billing"/>
+                    <field name="default_shipping"/>
                 </group>
             </form>
         </field>

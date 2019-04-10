@@ -109,8 +109,8 @@ class MagentoAddress(models.Model):
                                  readonly=True)
     updated_at = fields.Datetime(string='Updated At (on Magento)',
                                  readonly=True)
-    is_default_billing = fields.Boolean(string='Default Invoice')
-    is_default_shipping = fields.Boolean(string='Default Shipping')
+    default_billing = fields.Boolean(string='Default Invoice')
+    default_shipping = fields.Boolean(string='Default Shipping')
     magento_partner_id = fields.Many2one(comodel_name='magento.res.partner',
                                          string='Magento Partner',
                                          required=True,
