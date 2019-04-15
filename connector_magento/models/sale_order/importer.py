@@ -570,7 +570,7 @@ class SaleOrderImporter(Component):
                 'prefix': address.get('prefix'),
                 'suffix': address.get('suffix'),
                 'email': record.get('customer_email'),
-                'vat_id': address.get('vat_id'),
+                'taxvat': address.get('vat_id'),
                 'group_id': customer_group,
                 'gender': record.get('customer_gender'),
                 'store_id': record['store_id'],
