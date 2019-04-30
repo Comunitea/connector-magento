@@ -49,7 +49,6 @@ class PartnerImportMapper(Component):
         (normalize_datetime('created_at'), 'created_at'),
         (normalize_datetime('updated_at'), 'updated_at'),
         ('email', 'emailid'),
-        ('taxvat', 'vat'),
         ('group_id', 'group_id'),
     ]
 
@@ -137,6 +136,14 @@ class PartnerImportMapper(Component):
         )
         if partner:
             return {'odoo_id': partner.id}
+
+    @mapping
+    def vat_id(self, record):
+        if record.get('addresses'):
+            for address in record.get('addresses'):
+                if address.get('default_billing'):
+                    return {'vat': address.get('vat_id')}
+        return {'vat': record.get('taxvat')}
 
 
 class PartnerImporter(Component):

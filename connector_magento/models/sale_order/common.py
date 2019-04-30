@@ -301,7 +301,7 @@ class SaleOrderAdapter(Component):
         return record
 
     def get_parent(self, id):
-        return self._call('%s.get_parent' % self._magento_model, [id])
+        return self.read(id).get('relation_parent_real_id')
 
     def add_comment(self, id, status, comment=None, notify=False):
         return self._call('%s.addComment' % self._magento_model,

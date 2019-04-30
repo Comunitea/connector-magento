@@ -515,7 +515,6 @@ class SaleOrderImporter(Component):
 
         # Magento allows to create a sale order not registered as a user
         is_guest_order = bool(int(record.get('customer_is_guest', 0) or 0))
-
         # For a guest order or when magento does not provide customer_id
         # on a non-guest order (it happens, Magento inconsistencies are
         # common)
