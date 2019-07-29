@@ -146,7 +146,9 @@ class MagentoProductProduct(models.Model):
         self_with_location = self.with_context(location=location.id)
         for chunk_ids in chunks(products.ids, self.RECOMPUTE_QTY_STEP):
             records = self_with_location.browse(chunk_ids)
-            for product in records.read(fields=product_fields):
+            for product in records.filtered(
+                lambda r: r.product_type != 'configurable').read(
+                    fields=product_fields):
                 new_qty = self._magento_qty(product,
                                             backend,
                                             location,
