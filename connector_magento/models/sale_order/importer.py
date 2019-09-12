@@ -622,7 +622,7 @@ class SaleOrderImporter(Component):
         addresses_defaults = {'parent_id': partner.id,
                               'magento_partner_id': partner_binding.id,
                               'email': record.get('customer_email', False),
-                              'active': False,
+                              'active': True,
                               'is_magento_order_address': True}
 
         addr_mapper = self.component(usage='import.mapper',
