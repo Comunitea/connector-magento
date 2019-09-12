@@ -454,9 +454,9 @@ class AddressImportMapper(Component):
 
     @mapping
     def type(self, record):
-        if record.get('default_billing'):
+        if record.get('default_billing') or record.get('address_type') == 'billing':
             address_type = 'invoice'
-        elif record.get('default_shipping'):
+        elif record.get('default_shipping') or record.get('address_type') == 'shipping':
             address_type = 'delivery'
         else:
             address_type = 'other'
