@@ -15,7 +15,7 @@ _logger = logging.getLogger(__name__)
 class MagentoInvoiceExporter(Component):
     """ Export invoices to Magento """
     _name = 'magento.account.invoice.exporter'
-    _inherit = 'magento.exporter'
+    _inherit = 'base.exporter'
     _apply_on = ['magento.account.invoice']
 
     def _export_invoice(self, external_id, lines_info, mail_notification):
