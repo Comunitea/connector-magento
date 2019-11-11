@@ -141,7 +141,12 @@ class PartnerImportMapper(Component):
     def vat_id(self, record):
         if record.get('addresses'):
             for address in record.get('addresses'):
-                if address.get('default_billing'):
+                if address.get('default_billing') or \
+                        address.get('address_type') == 'billing':
+                    return {'vat': address.get('vat_id')}
+            for address in record.get('addresses'):
+                if address.get('default_shipping') or \
+                        address.get('address_type') == 'shipping':
                     return {'vat': address.get('vat_id')}
         return {'vat': record.get('taxvat')}
 
