@@ -143,12 +143,15 @@ class PartnerImportMapper(Component):
             for address in record.get('addresses'):
                 if address.get('default_billing') or \
                         address.get('address_type') == 'billing':
-                    return {'vat': address.get('vat_id')}
+                    if address.get('vat_id') != 'na':
+                        return {'vat': address.get('vat_id')}
             for address in record.get('addresses'):
                 if address.get('default_shipping') or \
                         address.get('address_type') == 'shipping':
-                    return {'vat': address.get('vat_id')}
-        return {'vat': record.get('taxvat')}
+                    if address.get('vat_id') != 'na':
+                        return {'vat': address.get('vat_id')}
+        if record.get('taxvat') != 'na':
+            return {'vat': record.get('taxvat')}
 
 
 class PartnerImporter(Component):
