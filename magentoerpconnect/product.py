@@ -209,9 +209,9 @@ class ProductProductAdapter(GenericAdapter):
     _magento2_key = 'sku'
     _admin_path = '/{model}/edit/id/{id}'
 
-    def _call(self, method, arguments):
+    def _call(self, method, arguments, http_method=None):
         try:
-            return super(ProductProductAdapter, self)._call(method, arguments)
+            return super(ProductProductAdapter, self)._call(method, arguments, http_method=http_method)
         except xmlrpclib.Fault as err:
             # this is the error in the Magento API
             # when the product does not exist
@@ -268,6 +268,11 @@ class ProductProductAdapter(GenericAdapter):
                           [int(id), data, storeview_id, 'id'])
 
     def get_images(self, id, storeview_id=None, data=None):
+        if self.magento.version == '2.0':
+            assert data
+            return (entry for entry in
+                    data.get('media_gallery_entries', [])
+                    if entry['media_type'] == 'image')
         return self._call('product_media.list', [int(id), storeview_id, 'id'])
 
     def read_image(self, id, image_name, storeview_id=None):
@@ -278,7 +283,7 @@ class ProductProductAdapter(GenericAdapter):
 
     def update_inventory(self, id, data):
         if self.magento.version == '2.0':
-            raise NotImplementedError  # TODO
+            return self._call('products/%s/stockItems/1' % id, {"stockItem": data}, http_method='put')
         # product_stock.update is too slow
         return self._call('oerp_cataloginventory_stock_item.update',
                           [int(id), data])
