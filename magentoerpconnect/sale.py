@@ -507,8 +507,12 @@ class SaleOrderImportMapper(ImportMapper):
         record = map_record.source
         if self.backend_record.version == '2.0':
             # amount_incl = float(record.get('base_grand_total') - record.get('base_subtotal_incl_tax') - record.get('base_shipping_incl_tax'))
-            amount_incl = float(record.get('extension_attributes').get('msp_cod_amount')) + float(record.get('extension_attributes').get('msp_cod_tax_amount'))
-            amount_excl = record.get('extension_attributes').get('msp_cod_amount')
+            if record.get('extension_attributes').get('msp_cod_amount') and record.get('extension_attributes').get('msp_cod_tax_amount'):
+                amount_incl = float(record.get('extension_attributes').get('msp_cod_amount')) + float(record.get('extension_attributes').get('msp_cod_tax_amount'))
+                amount_excl = record.get('extension_attributes').get('msp_cod_amount')
+            else:
+                amount_incl = 0.0
+                amount_excl = 0.0
         else:
             amount_excl = float(record.get('cod_fee') or 0.0)
             amount_incl = float(record.get('cod_tax_amount') or 0.0)
