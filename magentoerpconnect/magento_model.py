@@ -194,6 +194,10 @@ class MagentoBackend(models.Model):
     ]
 
     @api.multi
+    def get_import_products_websites(self):
+        return self.website_ids.filtered(lambda r: not r.skip_products).mapped('magento_id')
+
+    @api.multi
     def check_magento_structure(self):
         """ Used in each data import.
 
@@ -431,6 +435,7 @@ class MagentoWebsite(models.Model):
         string='Magento Products',
         readonly=True,
     )
+    skip_products = fields.Boolean()
 
     @api.multi
     def import_partners(self):
