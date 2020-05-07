@@ -69,7 +69,7 @@ class PartnerCategoryAdapter(GenericAdapter):
         :rtype: list
         """
         if self.magento.version == '2.0':
-            return super(PartnerCategoryAdapter, self).search(filters=filters)
+            return super(PartnerCategoryAdapter, self).search(filters=filters or {})
         return [int(row['customer_group_id']) for row
                 in self._call('%s.list' % self._magento_model,
                               [filters] if filters else [{}])]

@@ -415,7 +415,7 @@ class PartnerAddressBook(ConnectorUnit):
             # defines if the billing address is merged with the partner
             # or imported as a standalone contact
             merge = False
-            if magento_record.get('is_default_billing'):
+            if magento_record.get('default_billing'):
                 binding_model = self.env['magento.res.partner']
                 partner_binding = binding_model.browse(partner_binding_id)
                 if magento_record.get('company'):
@@ -647,8 +647,8 @@ class AddressImportMapper(BaseAddressImportMapper):
     direct = BaseAddressImportMapper.direct + [
         ('created_at', 'created_at'),
         ('updated_at', 'updated_at'),
-        ('is_default_billing', 'is_default_billing'),
-        ('is_default_shipping', 'is_default_shipping'),
+        ('default_billing', 'is_default_billing'),
+        ('default_shipping', 'is_default_shipping'),
         ('company', 'company'),
     ]
 
@@ -666,9 +666,9 @@ class AddressImportMapper(BaseAddressImportMapper):
 
     @mapping
     def type(self, record):
-        if record.get('is_default_billing'):
+        if record.get('default_billing'):
             address_type = 'invoice'
-        elif record.get('is_default_shipping'):
+        elif record.get('default_shipping'):
             address_type = 'delivery'
         else:
             address_type = 'contact'
