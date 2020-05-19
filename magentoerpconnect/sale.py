@@ -810,7 +810,6 @@ class SaleOrderImporter(MagentoImporter):
 
     def _import_addresses(self):
         record = self.magento_record
-
         # Magento allows to create a sale order not registered as a user
         is_guest_order = bool(int(record.get('customer_is_guest', 0) or 0))
 
@@ -922,6 +921,11 @@ class SaleOrderImporter(MagentoImporter):
         addr_mapper = self.unit_for(ImportMapper, model='magento.address')
 
         def create_address(address_record):
+            address_binder = self.binder_for('magento.address')
+            address_id = address_binder.\
+                to_openerp(address_record['customer_address_id'], unwrap=True)
+            if address_id:
+                return address_id
             map_record = addr_mapper.map_record(address_record)
             map_record.update(addresses_defaults)
             address_bind = self.env['magento.address'].create(
