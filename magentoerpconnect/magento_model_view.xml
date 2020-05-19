@@ -183,6 +183,7 @@
                             <field name="backend_id" readonly="1"/>
                             <field name="code"/>
                             <field name="sort_order"/>
+                            <field name="skip_products"/>
                         </group>
                         <group string="Options" name="options">
                             <field name="account_analytic_id" groups="sale.group_analytic_accounting" class="oe_read_only"/>

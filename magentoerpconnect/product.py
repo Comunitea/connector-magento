@@ -631,10 +631,18 @@ class ProductImporter(MagentoImporter):
 
         :returns: None | str | unicode
         """
+        product_websites = self.magento_record['extension_attributes']['website_ids']
+        skip = True
+        import_websites = self.backend_record.get_import_products_websites()
+        for website_id in product_websites:
+            if str(website_id) in import_websites:
+                skip = False
+
         if self.magento_record['type_id'] == 'configurable':
             return _('The configurable product is not imported in OpenERP, '
                      'because only the simple products are used in the sales '
                      'orders.')
+        return skip
 
     def _validate_data(self, data):
         """ Check if the values to import are correct
