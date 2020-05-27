@@ -89,7 +89,7 @@
                                             class="oe_inline"
                                             nolabel="1"/>
                                     </div>
-                                    <button name="import_product_categories"
+                                    <button name="import_product_categories_btn"
                                         type="object"
                                         class="oe_highlight"
                                         string="Import in background"/>
@@ -128,6 +128,8 @@
                                     <field name="admin_location" placeholder="e.g. http://my.magento.com/admin"/>
                                     <field name="default_lang_id" widget="selection"/>
                                     <field name="default_category_id"/>
+                                    <field name="import_partner_categories"/>
+                                    <field name="import_product_categories"/>
                                     <field name="sale_prefix" placeholder="mag-" />
                                     <field name="product_stock_field_id" widget="selection"
                                         domain="[('model', 'in', ['product.product', 'product.template']), ('ttype', '=', 'float')]"/>

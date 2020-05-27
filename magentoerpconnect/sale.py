@@ -23,6 +23,7 @@ import logging
 import xmlrpclib
 from datetime import datetime, timedelta
 import openerp.addons.decimal_precision as dp
+from openerp import exceptions
 from openerp import models, fields, api, _
 from openerp.addons.connector.connector import ConnectorUnit
 from openerp.addons.connector.session import ConnectorSession
@@ -590,11 +591,13 @@ class SaleOrderImportMapper(ImportMapper):
             return
 
         carrier = self.env['delivery.carrier'].search(
-            [('magento_code', '=', ifield)],
+            [('magento_code', 'ilike', ifield)],
             limit=1,
         )
         if carrier:
             result = {'carrier_id': carrier.id}
+            if carrier.service:
+                result['carrier_service_id'] = carrier.service.id
         else:
             raise exceptions.Warning(_('Carrier error'), _('Carrier with code %s not found') % ifield)
         return result
@@ -939,6 +942,13 @@ class SaleOrderImporter(MagentoImporter):
         shipping_address = self._get_shipping_address()
         if shipping_address:
             shipping_id = create_address(shipping_address)
+            
+        if not partner.customer_payment_mode:
+            record_method = record['payment']['method']
+            payment_method = self.env['payment.method'].search(
+                [['name', '=', record_method]],
+                limit=1)
+            partner.customer_payment_mode = payment_method.id
 
         self.partner_id = partner.id
         self.partner_invoice_id = billing_id

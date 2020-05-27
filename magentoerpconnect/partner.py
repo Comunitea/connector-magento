@@ -24,6 +24,7 @@ import xmlrpclib
 from collections import namedtuple
 from openerp import models, fields, api
 from openerp.addons.connector.queue.job import job
+from openerp.addons.connector.connector import ConnectorEnvironment
 from openerp.addons.connector.connector import ConnectorUnit
 from openerp.addons.connector.exception import MappingError
 from openerp.addons.connector.unit.backend_adapter import BackendAdapter
@@ -41,6 +42,8 @@ from .unit.import_synchronizer import (DelayedBatchImporter,
 from .unit.mapper import normalize_datetime
 from .backend import magento, magento2000
 from .connector import get_environment
+from .partner_category import PartnerCategoryAdapter
+
 
 _logger = logging.getLogger(__name__)
 
@@ -249,7 +252,6 @@ class PartnerImportMapper(ImportMapper):
         (normalize_datetime('updated_at'), 'updated_at'),
         ('email', 'emailid'),
         ('taxvat', 'taxvat'),
-        ('group_id', 'group_id'),
     ]
 
     @only_create
@@ -270,6 +272,8 @@ class PartnerImportMapper(ImportMapper):
     @mapping
     def customer_group_id(self, record):
         # import customer groups
+        if not self.backend_record.import_partner_categories:
+            return {}
         if record['group_id'] == 0:
             category_id = self.env.ref(
                 'magentoerpconnect.category_no_account').id
@@ -325,16 +329,44 @@ class PartnerImportMapper(ImportMapper):
     def openerp_id(self, record):
         """ Will bind the customer on a existing partner
         with the same email """
-        partner = self.env['res.partner'].search(
-            [('email', '=', record['email']),
-             ('customer', '=', True),
-             '|',
-             ('is_company', '=', True),
-             ('parent_id', '=', False)],
-            limit=1,
-        )
-        if partner:
-            return {'openerp_id': partner.id}
+        if record['email']:
+            partner = self.env['res.partner'].search(
+                [('email', '=', record['email']),
+                 ('customer', '=', True),
+                 '|',
+                 ('is_company', '=', True), '&',
+                 ('parent_id', '=', False),
+                 '|', ('active', '=', False), ('active', '=', True)],
+                limit=1,
+            )
+            if partner:
+                    return {'openerp_id': partner.id}
+
+    @mapping
+    def account_position(self, record):
+        if not record.get('store_id', False):
+            return
+        conn_env = ConnectorEnvironment(
+            self.backend_record,
+            (self.env.cr, self.env.user.id, self.env.context),
+            'magento.res.partner.category')
+        cat_adapter = PartnerCategoryAdapter(conn_env)
+        categ = cat_adapter.read(record['store_id'])
+        if categ and categ.get('tax_class_id', False):
+            fiscal_pos = self.env['account.fiscal.position'].search(
+                [('magento_id', '=', int(categ.get('tax_class_id')))])
+            if fiscal_pos:
+                return {'property_account_position': fiscal_pos.id}
+        return {'property_account_position': False}
+
+    @mapping
+    def payment_term(self, record):
+        if record.get('venciment', False):
+            payment_term = self.env['account.payment.term'].search(
+                [('magento_id', '=', record['venciment'])])
+            if payment_term:
+                return {'property_payment_term': payment_term.id}
+        return {'property_payment_term': False}
 
 
 @magento
@@ -346,6 +378,8 @@ class PartnerImporter(MagentoImporter):
     def _import_dependencies(self):
         """ Import the dependencies for the record"""
         record = self.magento_record
+        if not self.backend_record.import_partner_categories:
+            return
         self._import_dependency(record['group_id'],
                                 'magento.res.partner.category')
 

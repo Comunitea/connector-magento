@@ -52,7 +52,7 @@ from .unit.import_synchronizer import (DelayedBatchImporter,
 from .connector import get_environment
 from .backend import magento, magento2000
 from .related_action import unwrap_binding
-
+import html2text
 _logger = logging.getLogger(__name__)
 
 
@@ -72,8 +72,8 @@ class MagentoProductProduct(models.Model):
         return [
             ('simple', 'Simple Product'),
             ('configurable', 'Configurable Product'),
-            ('virtual', 'Virtual Product'),
-            ('downloadable', 'Downloadable Product'),
+            # ('virtual', 'Virtual Product'),
+            # ('downloadable', 'Downloadable Product'),
             # XXX activate when supported
             # ('grouped', 'Grouped Product'),
             # ('bundle', 'Bundle Product'),
@@ -477,10 +477,7 @@ class ProductImportMapper(ImportMapper):
     _model_name = 'magento.product.product'
     # TODO :     categ, special_price => minimal_price
     direct = [('name', 'name'),
-              ('description', 'description'),
               ('weight', 'weight'),
-              ('cost', 'standard_price'),
-              ('short_description', 'description_sale'),
               ('sku', 'default_code'),
               ('type_id', 'product_type'),
               (normalize_datetime('created_at'), 'created_at'),
@@ -493,10 +490,17 @@ class ProductImportMapper(ImportMapper):
         mapper = self.unit_for(IsActiveProductImportMapper)
         return mapper.map_record(record).values(**self.options)
 
+    # @mapping
+    # def price(self, record):
+    #     mapper = self.unit_for(PriceProductImportMapper)
+    #     return mapper.map_record(record).values(**self.options)
     @mapping
-    def price(self, record):
-        mapper = self.unit_for(PriceProductImportMapper)
-        return mapper.map_record(record).values(**self.options)
+    def description(self, record):
+        return {'description': html2text.html2text(record['description'])}
+
+    @mapping
+    def description_sale(self, record):
+        return {'description_sale': html2text.html2text(record['short_description'])}
 
     @mapping
     def type(self, record):
@@ -517,6 +521,8 @@ class ProductImportMapper(ImportMapper):
 
     @mapping
     def categories(self, record):
+        if not self.backend_record.import_product_categories:
+            return {}
         mag_categories = record.get('categories', record['category_ids'])
         binder = self.binder_for('magento.product.category')
 
@@ -563,6 +569,8 @@ class ProductImportMapper(ImportMapper):
     @mapping
     def openerp_id(self, record):
         """ Will bind the product to an existing one with the same code """
+        if not record['sku']:
+            return {}
         product = self.env['product.product'].search(
             [('default_code', '=', record['sku'])], limit=1)
         if product:
@@ -599,10 +607,11 @@ class ProductImporter(MagentoImporter):
         """ Import the dependencies for the record"""
         record = self.magento_record
         # import related categories
-        for mag_category_id in record.get(
-                'categories', record['category_ids']):
-            self._import_dependency(mag_category_id,
-                                    'magento.product.category')
+        if self.backend_record.import_product_categories:
+            for mag_category_id in record.get(
+                    'categories', record['category_ids']):
+                self._import_dependency(mag_category_id,
+                                        'magento.product.category')
         if record['type_id'] == 'bundle':
             self._import_bundle_dependencies()
 
@@ -659,6 +668,12 @@ class ProductImporter(MagentoImporter):
         checkpoint = self.unit_for(AddCheckpoint)
         checkpoint.run(openerp_binding.id)
         return openerp_binding
+
+    def _update_data(self, map_record, **kwargs):
+        res = super(ProductImporter, self)._update_data(map_record, **kwargs)
+        update_keys = ['name', 'website_ids', 'magento_id', 'backend_id',
+                       'created_at', 'updated_at', 'product_type']
+        return { key:res[key] for key in update_keys}
 
     def _after_import(self, binding):
         """ Hook called at the end of the import """
