@@ -52,21 +52,21 @@ class mail_message(orm.Model):
     }
 
 
-@on_record_create(model_names='mail.message')
-def create_mail_message(session, model_name, record_id, vals):
-    if session.context.get('connector_no_export'):
-        return
-    if vals.get('model') == 'sale.order' and vals.get('subtype_id'):
-        order = session.browse('sale.order', vals['res_id'])
-        for mag_sale in order.magento_bind_ids:
-            store = mag_sale.storeview_id.store_id
-            session.create('magento.sale.comment', {
-                'openerp_id': record_id,
-                'subject': _('Sent to Magento'),
-                'is_visible_on_front': True,
-                'is_customer_notified': store.send_sale_comment_mail,
-                'magento_sale_order_id': mag_sale.id,
-            })
+# @on_record_create(model_names='mail.message')
+# def create_mail_message(session, model_name, record_id, vals):
+#     if session.context.get('connector_no_export'):
+#         return
+#     if vals.get('model') == 'sale.order' and vals.get('subtype_id'):
+#         order = session.browse('sale.order', vals['res_id'])
+#         for mag_sale in order.magento_bind_ids:
+#             store = mag_sale.storeview_id.store_id
+#             session.create('magento.sale.comment', {
+#                 'openerp_id': record_id,
+#                 'subject': _('Sent to Magento'),
+#                 'is_visible_on_front': True,
+#                 'is_customer_notified': store.send_sale_comment_mail,
+#                 'magento_sale_order_id': mag_sale.id,
+#             })
 
 
 class magento_sale_order(orm.Model):

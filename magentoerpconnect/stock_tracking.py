@@ -37,7 +37,7 @@ class MagentoTrackingExporter(Exporter):
     _model_name = ['magento.stock.picking']
 
     def _get_tracking_args(self, picking):
-        return (picking.carrier_id.magento_carrier_code,
+        return ('custom',
                 picking.carrier_id.magento_tracking_title or '',
                 picking.carrier_tracking_ref)
 

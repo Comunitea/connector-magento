@@ -24,6 +24,7 @@ import xmlrpclib
 from collections import namedtuple
 from openerp import models, fields, api
 from openerp.addons.connector.queue.job import job
+from openerp.addons.connector.connector import ConnectorEnvironment
 from openerp.addons.connector.connector import ConnectorUnit
 from openerp.addons.connector.exception import MappingError
 from openerp.addons.connector.unit.backend_adapter import BackendAdapter
@@ -39,8 +40,10 @@ from .unit.import_synchronizer import (DelayedBatchImporter,
                                        MagentoImporter,
                                        )
 from .unit.mapper import normalize_datetime
-from .backend import magento
+from .backend import magento, magento2000
 from .connector import get_environment
+from .partner_category import PartnerCategoryAdapter
+
 
 _logger = logging.getLogger(__name__)
 
@@ -167,6 +170,9 @@ class MagentoAddress(models.Model):
 class PartnerAdapter(GenericAdapter):
     _model_name = 'magento.res.partner'
     _magento_model = 'customer'
+    _magento2_model = 'customers'
+    _magento2_search = 'customers/search'
+    _magento2_key = 'id'
     _admin_path = '/{model}/edit/id/{id}'
 
     def _call(self, method, arguments):
@@ -201,6 +207,8 @@ class PartnerAdapter(GenericAdapter):
         if magento_website_ids is not None:
             filters['website_id'] = {'in': magento_website_ids}
 
+        if self.magento.version == '2.0':
+            return super(PartnerAdapter, self).search(filters=filters)
         # the search method is on ol_customer instead of customer
         return self._call('ol_customer.search',
                           [filters] if filters else [{}])
@@ -244,7 +252,6 @@ class PartnerImportMapper(ImportMapper):
         (normalize_datetime('updated_at'), 'updated_at'),
         ('email', 'emailid'),
         ('taxvat', 'taxvat'),
-        ('group_id', 'group_id'),
     ]
 
     @only_create
@@ -258,20 +265,26 @@ class PartnerImportMapper(ImportMapper):
     def names(self, record):
         # TODO create a glue module for base_surname
         parts = [part for part in (record['firstname'],
-                                   record['middlename'],
+                                   record.get('middlename'),
                                    record['lastname']) if part]
         return {'name': ' '.join(parts)}
 
     @mapping
     def customer_group_id(self, record):
         # import customer groups
-        binder = self.binder_for(model='magento.res.partner.category')
-        category_id = binder.to_openerp(record['group_id'], unwrap=True)
+        if not self.backend_record.import_partner_categories:
+            return {}
+        if record['group_id'] == 0:
+            category_id = self.env.ref(
+                'magentoerpconnect.category_no_account').id
+        else:
+            binder = self.binder_for(model='magento.res.partner.category')
+            category_id = binder.to_openerp(record['group_id'], unwrap=True)
 
-        if category_id is None:
-            raise MappingError("The partner category with "
-                               "magento id %s does not exist" %
-                               record['group_id'])
+            if category_id is None:
+                raise MappingError("The partner category with "
+                                   "magento id %s does not exist" %
+                                   record['group_id'])
 
         # FIXME: should remove the previous tag (all the other tags from
         # the same backend)
@@ -316,16 +329,44 @@ class PartnerImportMapper(ImportMapper):
     def openerp_id(self, record):
         """ Will bind the customer on a existing partner
         with the same email """
-        partner = self.env['res.partner'].search(
-            [('email', '=', record['email']),
-             ('customer', '=', True),
-             '|',
-             ('is_company', '=', True),
-             ('parent_id', '=', False)],
-            limit=1,
-        )
-        if partner:
-            return {'openerp_id': partner.id}
+        if record['email']:
+            partner = self.env['res.partner'].search(
+                [('email', '=', record['email']),
+                 ('customer', '=', True),
+                 '|',
+                 ('is_company', '=', True), '&',
+                 ('parent_id', '=', False),
+                 '|', ('active', '=', False), ('active', '=', True)],
+                limit=1,
+            )
+            if partner:
+                    return {'openerp_id': partner.id}
+
+    @mapping
+    def account_position(self, record):
+        if not record.get('store_id', False):
+            return
+        conn_env = ConnectorEnvironment(
+            self.backend_record,
+            (self.env.cr, self.env.user.id, self.env.context),
+            'magento.res.partner.category')
+        cat_adapter = PartnerCategoryAdapter(conn_env)
+        categ = cat_adapter.read(record['store_id'])
+        if categ and categ.get('tax_class_id', False):
+            fiscal_pos = self.env['account.fiscal.position'].search(
+                [('magento_id', '=', int(categ.get('tax_class_id')))])
+            if fiscal_pos:
+                return {'property_account_position': fiscal_pos.id}
+        return {'property_account_position': False}
+
+    @mapping
+    def payment_term(self, record):
+        if record.get('venciment', False):
+            payment_term = self.env['account.payment.term'].search(
+                [('magento_id', '=', record['venciment'])])
+            if payment_term:
+                return {'property_payment_term': payment_term.id}
+        return {'property_payment_term': False}
 
 
 @magento
@@ -337,6 +378,8 @@ class PartnerImporter(MagentoImporter):
     def _import_dependencies(self):
         """ Import the dependencies for the record"""
         record = self.magento_record
+        if not self.backend_record.import_partner_categories:
+            return
         self._import_dependency(record['group_id'],
                                 'magento.res.partner.category')
 
@@ -391,19 +434,22 @@ class PartnerAddressBook(ConnectorUnit):
             importer = self.unit_for(MagentoImporter)
             importer.run(address_id, address_infos=infos)
 
-    def _get_address_infos(self, magento_partner_id, partner_binding_id):
+    def _read_addresses(self, magento_partner_id):
         adapter = self.unit_for(BackendAdapter)
         mag_address_ids = adapter.search({'customer_id':
                                           {'eq': magento_partner_id}})
         if not mag_address_ids:
             return
-        for address_id in mag_address_ids:
-            magento_record = adapter.read(address_id)
+        return [(address_id, adapter.read(address_id))
+                for address_id in mag_address_ids]
 
+    def _get_address_infos(self, magento_partner_id, partner_binding_id):
+        for address_id, magento_record in self._read_addresses(
+                magento_partner_id):
             # defines if the billing address is merged with the partner
             # or imported as a standalone contact
             merge = False
-            if magento_record.get('is_default_billing'):
+            if magento_record.get('default_billing'):
                 binding_model = self.env['magento.res.partner']
                 partner_binding = binding_model.browse(partner_binding_id)
                 if magento_record.get('company'):
@@ -428,6 +474,18 @@ class PartnerAddressBook(ConnectorUnit):
                                          partner_binding_id=partner_binding_id,
                                          merge=merge)
             yield address_id, address_infos
+
+
+@magento2000
+class PartnerAddressBook2000(PartnerAddressBook):
+
+    def _read_addresses(self, magento_partner_id):
+        """ Address repository cannot be queried, but the addresses are
+        included in the partner record.
+        TODO: process the addresses when we read the partner the first time """
+        adapter = self.unit_for(BackendAdapter, model='magento.res.partner')
+        record = adapter.read(magento_partner_id)
+        return [(addr['id'], addr) for addr in record['addresses']]
 
 
 class BaseAddressImportMapper(ImportMapper):
@@ -468,7 +526,11 @@ class BaseAddressImportMapper(ImportMapper):
         value = record['street']
         if not value:
             return {}
-        lines = [line.strip() for line in value.split('\n') if line.strip()]
+        if isinstance(value, list):
+            lines = value
+        else:
+            lines = [line.strip() for line in value.split('\n')
+                     if line.strip()]
         if len(lines) == 1:
             result = {'street': lines[0], 'street2': False}
         elif len(lines) >= 2:
@@ -479,7 +541,7 @@ class BaseAddressImportMapper(ImportMapper):
 
     @mapping
     def title(self, record):
-        prefix = record['prefix']
+        prefix = record.get('prefix')
         if not prefix:
             return
         title = self.env['res.partner.title'].search(
@@ -619,8 +681,8 @@ class AddressImportMapper(BaseAddressImportMapper):
     direct = BaseAddressImportMapper.direct + [
         ('created_at', 'created_at'),
         ('updated_at', 'updated_at'),
-        ('is_default_billing', 'is_default_billing'),
-        ('is_default_shipping', 'is_default_shipping'),
+        ('default_billing', 'is_default_billing'),
+        ('default_shipping', 'is_default_shipping'),
         ('company', 'company'),
     ]
 
@@ -638,9 +700,9 @@ class AddressImportMapper(BaseAddressImportMapper):
 
     @mapping
     def type(self, record):
-        if record.get('is_default_billing'):
+        if record.get('default_billing'):
             address_type = 'invoice'
-        elif record.get('is_default_shipping'):
+        elif record.get('default_shipping'):
             address_type = 'delivery'
         else:
             address_type = 'contact'

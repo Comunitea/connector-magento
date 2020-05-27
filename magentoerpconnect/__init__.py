@@ -16,3 +16,4 @@ from . import stock_tracking
 from . import payment_method
 
 from . import consumer
+from . import account
