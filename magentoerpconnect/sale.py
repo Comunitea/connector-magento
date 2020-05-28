@@ -925,8 +925,12 @@ class SaleOrderImporter(MagentoImporter):
 
         def create_address(address_record):
             address_binder = self.binder_for('magento.address')
-            address_id = address_binder.\
-                to_openerp(address_record['customer_address_id'], unwrap=True)
+            if 'entity_id' in address_record:
+                address_id = address_binder.\
+                    to_openerp(address_record['entity_id'], unwrap=True)
+            elif 'customer_address_id' in address_record:
+                address_id = address_binder.\
+                    to_openerp(address_record['customer_address_id'], unwrap=True)
             if address_id:
                 return address_id
             map_record = addr_mapper.map_record(address_record)
@@ -942,7 +946,7 @@ class SaleOrderImporter(MagentoImporter):
         shipping_address = self._get_shipping_address()
         if shipping_address:
             shipping_id = create_address(shipping_address)
-            
+
         if not partner.customer_payment_mode:
             record_method = record['payment']['method']
             payment_method = self.env['payment.method'].search(
