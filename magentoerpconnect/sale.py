@@ -587,9 +587,10 @@ class SaleOrderImportMapper(ImportMapper):
     @mapping
     def shipping_method(self, record):
         ifield = record.get('shipping_method')
-        if not ifield:
+        if not ifield and not (record['extension_attributes']['shipping_assignments'] and record['extension_attributes']['shipping_assignments'][0]['shipping']['method']):
             return
-
+        if not ifield:
+            ifield = record['extension_attributes']['shipping_assignments'][0]['shipping']['method']
         carrier = self.env['delivery.carrier'].search(
             [('magento_code', 'ilike', ifield)],
             limit=1,
