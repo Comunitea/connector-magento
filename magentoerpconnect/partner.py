@@ -359,6 +359,7 @@ class PartnerImportMapper(ImportMapper):
                 return {'property_account_position': fiscal_pos.id}
         return {'property_account_position': False}
 
+    @only_create
     @mapping
     def payment_term(self, record):
         if record.get('venciment', False):
