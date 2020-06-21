@@ -3,7 +3,7 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
 import logging
-
+from odoo import _
 from collections import namedtuple
 from odoo.addons.component.core import AbstractComponent, Component
 from odoo.addons.connector.exception import MappingError
@@ -137,21 +137,21 @@ class PartnerImportMapper(Component):
         if partner:
             return {'odoo_id': partner.id}
 
-    @mapping
-    def vat_id(self, record):
-        if record.get('addresses'):
-            for address in record.get('addresses'):
-                if address.get('default_billing') or \
-                        address.get('address_type') == 'billing':
-                    if address.get('vat_id') != 'na':
-                        return {'vat': address.get('vat_id')}
-            for address in record.get('addresses'):
-                if address.get('default_shipping') or \
-                        address.get('address_type') == 'shipping':
-                    if address.get('vat_id') != 'na':
-                        return {'vat': address.get('vat_id')}
-        if record.get('taxvat') != 'na':
-            return {'vat': record.get('taxvat')}
+    # @mapping
+    # def vat_id(self, record):
+    #     if record.get('addresses'):
+    #         for address in record.get('addresses'):
+    #             if address.get('default_billing') or \
+    #                     address.get('address_type') == 'billing':
+    #                 if address.get('vat_id') != 'na':
+    #                     return {'vat': address.get('vat_id')}
+    #         for address in record.get('addresses'):
+    #             if address.get('default_shipping') or \
+    #                     address.get('address_type') == 'shipping':
+    #                 if address.get('vat_id') != 'na':
+    #                     return {'vat': address.get('vat_id')}
+    #     if record.get('taxvat') != 'na':
+    #         return {'vat': record.get('taxvat')}
 
 
 class PartnerImporter(Component):
@@ -165,11 +165,50 @@ class PartnerImporter(Component):
         self._import_dependency(record['group_id'],
                                 'magento.res.partner.category')
 
+    def _check_vat(self, vat_number, partner_country):
+        import ipdb; ipdb.set_trace()
+        vat_country, vat_number_ = self.env["res.partner"]._split_vat(
+            vat_number
+        )
+        if not self.env["res.partner"].simple_vat_check(
+                vat_country, vat_number_):
+            # if fails, check with country code from country
+            country_code = partner_country.code
+            if country_code:
+                if not self.env["res.partner"].simple_vat_check(
+                        country_code.lower(), vat_number):
+                    return False
+        return True
+
     def _after_import(self, partner_binding):
         """ Import the addresses """
         book = self.component(usage='address.book',
                               model_name='magento.address')
         book.import_addresses(self.external_id, partner_binding.id)
+        record = self.magento_record
+        vat = None
+        if record.get('taxvat') != 'na':
+            vat = record.get('taxvat')
+        if record.get('addresses'):
+            for address in record.get('addresses'):
+                if address.get('default_billing') or \
+                        address.get('address_type') == 'billing':
+                    if address.get('vat_id') != 'na':
+                        vat = address.get('vat_id')
+            for address in record.get('addresses'):
+                if address.get('default_shipping') or \
+                        address.get('address_type') == 'shipping':
+                    if address.get('vat_id') != 'na':
+                        vat = address.get('vat_id')
+        import ipdb; ipdb.set_trace()
+        if vat and self._check_vat(vat, partner_binding.odoo_id.country_id):
+            partner_binding.vat = vat
+        else:
+            msg = _('Please, check the VAT number: %s') % vat
+            self.backend_record.add_checkpoint(
+                partner_binding,
+                message=msg,
+            )
 
 
 AddressInfos = namedtuple('AddressInfos', ['magento_record',

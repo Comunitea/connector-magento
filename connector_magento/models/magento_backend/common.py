@@ -217,11 +217,13 @@ class MagentoBackend(models.Model):
                 yield work
 
     @api.multi
-    def add_checkpoint(self, record):
+    def add_checkpoint(self, record, message=''):
         self.ensure_one()
         record.ensure_one()
-        return add_checkpoint(self.env, record._name, record.id,
-                              self._name, self.id)
+        check_point = add_checkpoint(self.env, record._name, record.id,
+                                     self._name, self.id)
+        if message:
+            check_point.message_post(body=message)
 
     @api.multi
     def synchronize_metadata(self):

@@ -1,7 +1,7 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
 # * connector_magento
-# 
+#
 # Translators:
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2014
 msgid ""
@@ -22,6 +22,12 @@ msgstr ""
 #: help:magento.sale.order,magento_order_id:0
 msgid "'order_id' field in Magento"
 msgstr "Campo 'order_id' en Magento"
+
+#. module: connector_magento
+#: code:addons/connector_magento/models/partner/importer.py:202
+#, python-format
+msgid "Please, check the VAT number: %s"
+msgstr "Compruebe el nif: %s"
 
 #. module: connector_magento
 #: view:magento.product.product:connector_magento.view_magento_product_form
