@@ -347,7 +347,6 @@ class ProductImporter(Component):
 
     def _create(self, data):
         binding = super(ProductImporter, self)._create(data)
-        self.backend_record.add_checkpoint(binding)
         return binding
 
     def _after_import(self, binding):

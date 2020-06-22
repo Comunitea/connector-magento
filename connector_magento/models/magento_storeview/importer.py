@@ -42,5 +42,4 @@ class StoreviewImporter(Component):
 
     def _create(self, data):
         binding = super(StoreviewImporter, self)._create(data)
-        self.backend_record.add_checkpoint(binding)
         return binding
