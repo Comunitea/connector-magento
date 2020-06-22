@@ -166,7 +166,6 @@ class PartnerImporter(Component):
                                 'magento.res.partner.category')
 
     def _check_vat(self, vat_number, partner_country):
-        import ipdb; ipdb.set_trace()
         vat_country, vat_number_ = self.env["res.partner"]._split_vat(
             vat_number
         )
@@ -200,7 +199,6 @@ class PartnerImporter(Component):
                         address.get('address_type') == 'shipping':
                     if address.get('vat_id') != 'na':
                         vat = address.get('vat_id')
-        import ipdb; ipdb.set_trace()
         if vat and self._check_vat(vat, partner_binding.odoo_id.country_id):
             partner_binding.vat = vat
         else:
