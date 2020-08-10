@@ -501,7 +501,8 @@ class ProductImportMapper(ImportMapper):
 
     @mapping
     def description_sale(self, record):
-        return {'description_sale': html2text.html2text(record['short_description'])}
+        if record.get('description'):
+            return {'description_sale': html2text.html2text(record['short_description'])}
 
     @mapping
     def type(self, record):
