@@ -496,7 +496,8 @@ class ProductImportMapper(ImportMapper):
     #     return mapper.map_record(record).values(**self.options)
     @mapping
     def description(self, record):
-        return {'description': html2text.html2text(record['description'])}
+        if record.get('description'):
+            return {'description': html2text.html2text(record['description'])}
 
     @mapping
     def description_sale(self, record):
