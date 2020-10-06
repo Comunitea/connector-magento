@@ -467,7 +467,7 @@ class PartnerAddressBook(ConnectorUnit):
                 else:
                     # for B2C individual customers, merge with the main
                     # partner
-                    merge = True
+                    merge = False
                     # in the case if the billing address no longer
                     # has a company, reset the flag
                     partner_binding.write({'consider_as_company': False})
